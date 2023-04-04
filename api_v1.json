@@ -1,0 +1,1320 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "MediMeet API",
+    "description": "An API for Medical Appointment Scheduling App",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://virtserver.swaggerhub.com/smmehrab/MediMeet/1.0.0",
+      "description": "SwaggerHub API Auto Mocking"
+    },
+    {
+      "url": "http://localhost:8000/api/v1/",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/patients/signup/": {
+      "post": {
+        "tags": [
+          "Patient"
+        ],
+        "summary": "Signup a new Patient",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/patients_signup_body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Patient signed up successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_201"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing parameters"
+          }
+        }
+      }
+    },
+    "/patients/signin/": {
+      "post": {
+        "tags": [
+          "Patient"
+        ],
+        "summary": "Sign in a Patient",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/patients_signin_body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Patient signed in successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_201"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid phone number or password"
+          }
+        }
+      }
+    },
+    "/patients/doctors/": {
+      "get": {
+        "tags": [
+          "Patient"
+        ],
+        "summary": "Get a list of Doctors",
+        "responses": {
+          "200": {
+            "description": "List of doctors retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Doctor"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/patients/appointments": {
+      "post": {
+        "tags": [
+          "Patient"
+        ],
+        "summary": "Book an appointment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Appointment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully created a new appointment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Appointment"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Patient"
+        ],
+        "summary": "Confirm/Cancel an Appointment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/patients_appointments_body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Appointment"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/patients/sessions/{doctor_id}": {
+      "get": {
+        "tags": [
+          "Patient"
+        ],
+        "summary": "Get a list of upcoming Sessions of a Doctor",
+        "parameters": [
+          {
+            "name": "doctor_id",
+            "in": "path",
+            "description": "ID of the doctor, who's sessions is being requested",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Session"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admins/signin": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "sign in an Admin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/admins_signin_body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Admin signed in successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_201"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/admins/appointments": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Accept or reject a new Appointment request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/admins_appointments_body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Appointment request updated successfully"
+          },
+          "404": {
+            "description": "Appointment request not found"
+          }
+        }
+      }
+    },
+    "/admins/appointments/{session_id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get a list of Appointment of a Session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "description": "ID of the session to retrieve",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of appointment objects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Appointment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admins/sessions": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Create a new Session for a Doctor.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Appointment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Session created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          }
+        }
+      }
+    },
+    "/admins/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get a Session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "description": "ID of the session to retrieve",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete a Session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "description": "The ID of the session to delete",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Update a Session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "description": "The ID of the session to update",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "description": "The updated session object",
+            "required": true,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "$ref": "#/components/schemas/Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BadRequest"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "NotFound"
+          },
+          "500": {
+            "description": "InternalServerError"
+          }
+        }
+      }
+    },
+    "/admins/ban": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Ban a Patient from booking Appointments",
+        "requestBody": {
+          "description": "The email address of the patient to be banned",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/admins_ban_body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The email address of the banned patient",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/admins_ban_body"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The specified email address does not match any patient"
+          },
+          "500": {
+            "description": "An internal error occurred while banning the patient"
+          }
+        }
+      }
+    },
+    "/superadmins/signin": {
+      "post": {
+        "tags": [
+          "Super-Admin"
+        ],
+        "summary": "Sign in a Super-Admin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/superadmins_signin_body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Super-Admin signed in successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/inline_response_201"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid email or password"
+          }
+        }
+      }
+    },
+    "/superadmins/doctors": {
+      "post": {
+        "tags": [
+          "Super-Admin"
+        ],
+        "summary": "Add a new Doctor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Doctor"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Doctor added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Doctor"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/superadmins/doctors/{doctor_id}": {
+      "delete": {
+        "tags": [
+          "Super-Admin"
+        ],
+        "summary": "Remove a Doctor",
+        "parameters": [
+          {
+            "name": "doctor_id",
+            "in": "path",
+            "description": "ID of the doctor to be removed",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Doctor removed successfully."
+          },
+          "404": {
+            "description": "Doctor not found."
+          },
+          "500": {
+            "description": "Internal Server Error."
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Super-Admin"
+        ],
+        "summary": "Update a Doctor",
+        "parameters": [
+          {
+            "name": "doctor_id",
+            "in": "path",
+            "description": "The ID of the doctor to update",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "doctor",
+            "in": "query",
+            "description": "The updated doctor object",
+            "required": true,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "$ref": "#/components/schemas/Doctor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Doctor"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BadRequest"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "NotFound"
+          },
+          "500": {
+            "description": "InternalServerError"
+          }
+        }
+      }
+    },
+    "/superadmins/admins": {
+      "post": {
+        "tags": [
+          "Super-Admin"
+        ],
+        "summary": "Add a new Admin",
+        "requestBody": {
+          "description": "Admin object to be added",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Admin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Admin added successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Admin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request."
+          },
+          "500": {
+            "description": "Internal Server Error."
+          }
+        }
+      }
+    },
+    "/superadmins/admins/{admin_id}": {
+      "delete": {
+        "tags": [
+          "Super-Admin"
+        ],
+        "summary": "Remove an Admin",
+        "parameters": [
+          {
+            "name": "admin_id",
+            "in": "path",
+            "description": "ID of the admin to be removed",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Admin removed successfully."
+          },
+          "404": {
+            "description": "Admin not found."
+          },
+          "500": {
+            "description": "Internal Server Error."
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Super-Admin"
+        ],
+        "summary": "Update an Admin",
+        "parameters": [
+          {
+            "name": "admin_id",
+            "in": "path",
+            "description": "The ID of the doctor to update",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "doctor",
+            "in": "query",
+            "description": "The updated admin object",
+            "required": true,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "$ref": "#/components/schemas/Admin"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Admin"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BadRequest"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "NotFound"
+          },
+          "500": {
+            "description": "InternalServerError"
+          }
+        }
+      }
+    },
+    "/superadmins/sessions": {
+      "post": {
+        "tags": [
+          "Super-Admin"
+        ],
+        "summary": "Create a new Session for a Doctor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Session"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/superadmins/sessions/{session_id}": {
+      "get": {
+        "tags": [
+          "Super-Admin"
+        ],
+        "summary": "Get a Session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "description": "ID of the session to retrieve",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Super-Admin"
+        ],
+        "summary": "Remove a Session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "description": "The ID of the session to delete",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Super-Admin"
+        ],
+        "summary": "Update a Session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "description": "The ID of the session to update",
+            "required": true,
+            "style": "simple",
+            "explode": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "session",
+            "in": "query",
+            "description": "The updated session object",
+            "required": true,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "$ref": "#/components/schemas/Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BadRequest"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "NotFound"
+          },
+          "500": {
+            "description": "InternalServerError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SuperAdmin": {
+        "required": [
+          "email",
+          "name",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "super_admin_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Admin": {
+        "required": [
+          "doctor_id",
+          "email",
+          "name",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "admin_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "doctor_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Doctor": {
+        "required": [
+          "admin_id",
+          "name",
+          "phone"
+        ],
+        "type": "object",
+        "properties": {
+          "doctor_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "phone": {
+            "pattern": "^[0-9]{10}$",
+            "type": "string"
+          },
+          "admin_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Patient": {
+        "required": [
+          "address",
+          "name",
+          "password",
+          "phone"
+        ],
+        "type": "object",
+        "properties": {
+          "patient_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "phone": {
+            "pattern": "^[0-9]{10}$",
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "total_appointments": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "attended_appointments": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "Session": {
+        "required": [
+          "admin_id",
+          "doctor_id",
+          "max_appointments",
+          "start_time"
+        ],
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "doctor_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "admin_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "max_appointments": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "Appointment": {
+        "required": [
+          "appointment_type",
+          "patient_id",
+          "session_id",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "appointment_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "session_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "patient_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "appointment_type": {
+            "type": "string"
+          },
+          "appointment_note": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "rejected",
+              "confirmed",
+              "attended",
+              "unattended"
+            ]
+          }
+        }
+      },
+      "AppointmentHistory": {
+        "required": [
+          "appointment_type",
+          "patient_id",
+          "session_id",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "appointment_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "session_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "patient_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "appointment_type": {
+            "type": "string"
+          },
+          "appointment_note": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "accepted",
+              "rejected",
+              "confirmed",
+              "attended",
+              "unattended"
+            ]
+          }
+        }
+      },
+      "patients_signup_body": {
+        "required": [
+          "name",
+          "password",
+          "phone"
+        ],
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "example": "+8801700000000"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "example": "johndoe@example.com"
+          },
+          "address": {
+            "type": "string",
+            "example": "123 Main St, Dhaka, Bangladesh"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "mypassword"
+          }
+        }
+      },
+      "inline_response_201": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        }
+      },
+      "patients_signin_body": {
+        "required": [
+          "password",
+          "phone"
+        ],
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "example": "+8801700000000"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "mypassword"
+          }
+        }
+      },
+      "patients_appointments_body": {
+        "required": [
+          "action",
+          "appointment_id"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "confirm",
+              "cancel"
+            ]
+          },
+          "appointment_id": {
+            "type": "integer",
+            "description": "The ID of the appointment"
+          },
+          "transaction_id": {
+            "type": "string",
+            "description": "payment transaction id"
+          }
+        }
+      },
+      "admins_signin_body": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "admins_appointments_body": {
+        "required": [
+          "action",
+          "appointment_id"
+        ],
+        "type": "object",
+        "properties": {
+          "appointment_id": {
+            "type": "integer"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "accept",
+              "reject"
+            ]
+          }
+        }
+      },
+      "admins_ban_body": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "superadmins_signin_body": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
