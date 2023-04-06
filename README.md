@@ -1,1 +1,1 @@
-# appointify
+# MediMeet
