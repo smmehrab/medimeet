@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'dj_database_url',
     'psycopg2',
+    'gunicorn',
     'main'
 ]
 
