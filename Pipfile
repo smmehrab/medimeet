@@ -20,6 +20,7 @@ typing-extensions = "==4.5.0"
 django-cors-headers = "*"
 drf-yasg = "*"
 coreapi = "*"
+psql = "*"
 
 [dev-packages]
 
