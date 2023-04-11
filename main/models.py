@@ -4,6 +4,15 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.core.validators import RegexValidator
 
+class PhoneVerification(models.Model):
+    phone_number = models.CharField(max_length=20)
+    otp = models.CharField(max_length=6)
+    token = models.CharField(max_length=32)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def is_valid_token(self):
+        return self.created_at > timezone.now() - timezone.timedelta(minutes=10)
+
 # ----------------------------------------------
 
 class UserManager(BaseUserManager):
@@ -37,7 +46,7 @@ class UserManager(BaseUserManager):
 
         other_fields.setdefault('is_superuser', False)
         other_fields.setdefault('is_staff', False)
-        other_fields.setdefault('is_active', False)
+        other_fields.setdefault('is_active', True)
 
         if not email:
             raise ValueError(_('Email address must be provided'))
@@ -69,6 +78,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.username
 
+    # Only for Django Admin Panel
+    @classmethod
+    def create(cls, **kwargs):
+        password = kwargs.pop('password')
+        user = cls(**kwargs)
+        user.set_password(password)
+        user.save()
+        return user
+
 # ----------------------------------------------
 
 class DoctorManager(models.Manager):
@@ -78,9 +96,11 @@ class DoctorManager(models.Manager):
 
 class Doctor(models.Model):
     fullname = models.CharField(max_length=255)
-    image_url = models.URLField(null=True, blank=True)
+    # image_url = models.URLField(null=True, blank=True)
+    image_url = models.CharField(max_length=255)
     email = models.EmailField()
-    phone = models.CharField(max_length=10, validators=[RegexValidator(r'^\d{10}$')])
+    # phone = models.CharField(max_length=10, validators=[RegexValidator(r'^\d{10}$')])
+    phone = models.CharField(max_length=10, validators=[])
     admin = models.ForeignKey(User, on_delete=models.SET_NULL, limit_choices_to={'is_staff': True}, null=True)
 
     def __str__(self):
@@ -105,10 +125,10 @@ class Session(models.Model):
 class AppointmentStatus(models.IntegerChoices):
     PENDING = 1, _('Pending')
     ACCEPTED = 2, _('Accepted')
-    REJECTED = 3, _('Rejected')
-    CONFIRMED = 4, _('Confirmed')
-    ATTENDED = 5, _('Attended')
-    UNATTENDED = 6, _('Unattended')
+    CONFIRMED = 3, _('Confirmed')
+    ATTENDED = 4, _('Attended')
+    UNATTENDED = 5, _('Unattended')
+    REJECTED = -1, _('Rejected')
 
 class AppointmentManager(models.Manager):
     def create_appointment(self, session_id, patient_id, appointment_type, appointment_note=None, status=AppointmentStatus.PENDING):
@@ -120,7 +140,10 @@ class Appointment(models.Model):
     patient = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'is_staff': False}, null=False)
     appointment_type = models.CharField(max_length=255)
     appointment_note = models.TextField(null=True, blank=True)
-    status = models.IntegerField(choices=AppointmentStatus.choices)
+    status = models.IntegerField(choices=AppointmentStatus.choices, default=AppointmentStatus.PENDING)
+
+    created_at = models.DateTimeField(null=False, blank=False, default=timezone.now)
+    updated_at = models.DateTimeField(null=False, blank=False, default=timezone.now)
 
 # ----------------------------------------------
 
