@@ -12,7 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from .models import Doctor, Session, Appointment, AppointmentStatus, PhoneVerification
-from .serializers import UserSerializer, DoctorSerializer, SessionSerializer, AppointmentSerializer, PhoneVerificationSerializer
+from .serializers import UserSerializer, DoctorSerializer, SessionSerializer, AppointmentSerializer, PhoneVerificationSerializer, DoctorProfileSerializer
 
 from rest_framework.permissions import AllowAny
 from rest_framework.permissions import IsAuthenticated
@@ -64,7 +64,7 @@ class OTPSendView(generics.CreateAPIView):
         response = requests.request("POST", settings.SMS_URL, data=payload)
         return Response({'success': True, 'token': token})
 
-otp_send = OTPSendView.as_view()
+otp_send_view = OTPSendView.as_view()
 
 class OTPVerifyView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
@@ -96,7 +96,7 @@ class OTPVerifyView(generics.CreateAPIView):
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
         return Response({'success': True, 'token': token})
 
-otp_verify = OTPVerifyView.as_view()
+otp_verify_view = OTPVerifyView.as_view()
 
 # @csrf_exempt
 # @api_view(['POST'])
@@ -219,11 +219,11 @@ class PatientAppointmentListAPIView(generics.ListAPIView):
 
 patient_appointment_list_view = PatientAppointmentListAPIView.as_view()
 
-
 # ----------------------------------------------
 
 class DoctorListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = DoctorSerializer
+    name = 'List of Doctors'
 
     def get_queryset(self):
         return Doctor.objects.all()
@@ -235,7 +235,29 @@ class DoctorListCreateAPIView(generics.ListCreateAPIView):
             permission_classes = [permissions.AllowAny]
         return [permission() for permission in permission_classes]
 
-doctors_create_view = DoctorListCreateAPIView.as_view()
+doctor_list_create_view = DoctorListCreateAPIView.as_view()
+
+class DoctorProfileDetailView(generics.RetrieveAPIView):
+    queryset = Doctor.objects.all()
+    serializer_class = DoctorProfileSerializer
+    lookup_field = 'id'
+    name='Doctor Profile Info'
+
+    def get_object(self):
+        id = self.kwargs['id']
+        return Doctor.objects.filter(id=id).first()
+
+    def get(self, request, *args, **kwargs):
+        doctor = self.get_object()
+        serializer = self.get_serializer(doctor)
+        return Response(serializer.data)
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        return []
+
+doctor_profile_view = DoctorProfileDetailView.as_view()
 
 # ----------------------------------------------
 
