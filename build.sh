@@ -2,9 +2,8 @@
 # exit on error
 set -o errexit
 
-pip install pipenv
-pipenv install
-pipenv shell
+pip install --upgrade pip
+pip install -r requirements.txt
 
 python manage.py makemigrations main
 python manage.py migrate main
