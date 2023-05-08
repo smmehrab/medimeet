@@ -33,6 +33,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
+
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
@@ -121,9 +122,27 @@ WSGI_APPLICATION = 'medimeet.wsgi.application'
 #     }
 # }
 
+
+DATABASE = os.environ.get('DATABASE')
+DATABASE_USERNAME = os.environ.get('DATABASE_USERNAME')
+DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
+DATABASE_HOST= os.environ.get('DATABASE_HOST')
+DATABASE_PORT = os.environ.get('DATABASE_PORT')
+
 DATABASES = {
-    'default': dj_database_url.parse(os.environ.get("DATABASE_URL"))
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': DATABASE,
+        'USER': DATABASE_USERNAME,
+        'PASSWORD': DATABASE_PASSWORD,
+        'HOST': DATABASE_HOST,
+        'PORT': DATABASE_PORT,
+    }
 }
+
+# DATABASES = {
+#     'default': dj_database_url.parse(os.environ.get("DATABASE_URL"))
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -221,6 +240,6 @@ SIMPLE_JWT = {
 }
 
 PHONE_NUMBER_REGEX = '(^([+]{1}[8]{2}|88)?(01){1}[3-9]{1}\d{8})$'
-SMS_URL = "https://api.sms.net.bd/sendsms"
+SMS_URL = os.environ.get("SMS_URL")
 SMS_API_KEY = os.environ.get("SMS_API_KEY")
 
