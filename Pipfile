@@ -20,9 +20,8 @@ typing-extensions = "==4.5.0"
 django-cors-headers = "*"
 drf-yasg = "*"
 coreapi = "*"
-psql = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.10"
+python_version = "3.11.2"

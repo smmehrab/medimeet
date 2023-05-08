@@ -28,8 +28,14 @@ class UserSerializer(serializers.ModelSerializer):
 class DoctorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
-        fields = ['id', 'fullname', 'image_url', 'email', 'phone', 'admin']
+        fields = ['id', 'fullname', 'department', 'description', 'image_url', 'email', 'phone', 'admin']
         read_only_fields = ['id']
+
+class DoctorProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Doctor
+        fields = ['fullname', 'department', 'description', 'image_url']
+        read_only_fields = fields
 
 class SessionSerializer(serializers.ModelSerializer):
     class Meta:

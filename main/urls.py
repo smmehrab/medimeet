@@ -38,22 +38,23 @@ urlpatterns = [
 
     path('admin/signin', views.admin_signin_view),
 
-    path('doctors', views.doctors_create_view),
+    path('doctors', views.doctor_list_create_view, name = 'List of Doctors'),
+    path('doctors/<int:id>/', views.doctor_profile_view, name='Doctor Profile'),
 
     path('session', views.sessions_create_view),
-    path('session/<int:id>', views.sessions_detail_view, name='get, update or delete session detail'),
-    path('session/<int:id>/appointments', views.session_appointments_view, name='add to or get from the appointments list of a session'),
+    path('session/<int:id>', views.sessions_detail_view, name='Session Detail'),
+    path('session/<int:id>/appointments', views.session_appointments_view, name='Appointments list of a Session'),
 
-    path('appointment/<int:id>', views.appointment_view, name='get an appointment details'),
+    path('appointment/<int:id>', views.appointment_view, name='Appointment details'),
     
-    path('appointment/<int:id>/confirm', views.confirm_cancel_appointment_view, name='confirm an appointment'),
-    path('appointment/<int:id>/cancel', views.confirm_cancel_appointment_view, name='cancel an appointment'),
+    path('appointment/<int:id>/confirm', views.confirm_cancel_appointment_view, name='Confirm Appointment'),
+    path('appointment/<int:id>/cancel', views.confirm_cancel_appointment_view, name='Cancel Appointment'),
 
-    path('appointment/<int:id>/accept', views.accept_reject_appointment_view, name='accept an appointment'),
-    path('appointment/<int:id>/reject', views.accept_reject_appointment_view, name='reject an appointment'),
+    path('appointment/<int:id>/accept', views.accept_reject_appointment_view, name='Accept Appointment'),
+    path('appointment/<int:id>/reject', views.accept_reject_appointment_view, name='Reject Appointment'),
 
-    path('otp/send', views.otp_send, name='send otp'),
-    path('otp/verify', views.otp_verify, name='verify otp'),
+    path('otp/send', views.otp_send_view, name='Send OTP'),
+    path('otp/verify', views.otp_verify_view, name='Verify OTP'),
 
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

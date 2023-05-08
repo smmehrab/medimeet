@@ -29,9 +29,9 @@ admin.site.register(User, UserAdminConfig)
 
 @admin.register(Doctor)
 class DoctorAdminConfig(admin.ModelAdmin):
-    list_display = ('id', 'fullname', 'email', 'phone', 'admin')
+    list_display = ('id', 'fullname', 'department', 'description', 'email', 'phone', 'admin')
     list_filter = ('admin',)
-    search_fields = ('fullname', 'email', 'phone')
+    search_fields = ('fullname', 'email', 'department', 'phone')
 
 @admin.register(Session)
 class SessionAdminConfig(admin.ModelAdmin):
@@ -41,7 +41,7 @@ class SessionAdminConfig(admin.ModelAdmin):
 
 @admin.register(Appointment)
 class AppointmentAdminConfig(admin.ModelAdmin):
-    list_display = ('id', 'session', 'patient', 'appointment_type', 'status', 'created_at', 'updated_at')
+    list_display = ('id', 'session', 'patient', 'appointment_type', 'status', 'modified_at')
     list_filter = ('session__doctor', 'status')
     search_fields = ('patient__email', 'appointment_type', 'appointment_note')
 
