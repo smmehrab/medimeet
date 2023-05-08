@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 import os
-import dj_database_url
 from dotenv import load_dotenv
 from datetime import timedelta
 
@@ -31,6 +30,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = 'RENDER' not in os.environ
 DEBUG = True
+PRODUCTION = True
 
 ALLOWED_HOSTS = ["*"]
 
@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
-    'dj_database_url',
     'psycopg2',
     'gunicorn',
     'drf_yasg',
@@ -104,6 +103,7 @@ WSGI_APPLICATION = 'medimeet.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+# sqlite
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',
@@ -111,37 +111,35 @@ WSGI_APPLICATION = 'medimeet.wsgi.application'
 #     }
 # }
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'medimeet-db',
-#         'USER': 'smmehrab',
-#         'PASSWORD': '12345',
-#         'HOST': 'localhost',
-#         'PORT': '5432',
-#     }
-# }
-
-DATABASE = os.environ.get('DATABASE')
-DATABASE_USERNAME = os.environ.get('DATABASE_USERNAME')
-DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
-DATABASE_HOST= os.environ.get('DATABASE_HOST')
-DATABASE_PORT = os.environ.get('DATABASE_PORT')
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': DATABASE,
-        'USER': DATABASE_USERNAME,
-        'PASSWORD': DATABASE_PASSWORD,
-        'HOST': DATABASE_HOST,
-        'PORT': DATABASE_PORT,
+# postgres - remote
+if PRODUCTION:
+    DATABASE = os.environ.get('DATABASE')
+    DATABASE_USERNAME = os.environ.get('DATABASE_USERNAME')
+    DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
+    DATABASE_HOST= os.environ.get('DATABASE_HOST')
+    DATABASE_PORT = os.environ.get('DATABASE_PORT')
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': DATABASE,
+            'USER': DATABASE_USERNAME,
+            'PASSWORD': DATABASE_PASSWORD,
+            'HOST': DATABASE_HOST,
+            'PORT': DATABASE_PORT,
+        }
     }
-}
-
-# DATABASES = {
-#     'default': dj_database_url.parse(os.environ.get("DATABASE_URL"))
-# }
+# postgres - local
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'medimeet-db',
+            'USER': 'smmehrab',
+            'PASSWORD': '12345',
+            'HOST': 'localhost',
+            'PORT': '5432',
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
