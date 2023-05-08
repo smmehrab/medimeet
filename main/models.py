@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.core.validators import RegexValidator
+from django.core.exceptions import ValidationError
 
 class PhoneVerification(models.Model):
     phone_number = models.CharField(max_length=20)
@@ -176,6 +177,14 @@ class Session(models.Model):
 
     def clean(self):
         super().clean()
+        # Check for Session Overlap
+        overlapping_sessions = Session.objects.filter(
+            doctor=self.doctor,
+            start_time__lt=self.end_time,
+            end_time__gt=self.start_time
+        )
+        if overlapping_sessions.exists():
+            raise ValidationError('This session overlaps with an existing session.')
 
 # ----------------------------------------------
 
