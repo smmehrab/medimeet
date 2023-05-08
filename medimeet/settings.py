@@ -110,17 +110,6 @@ WSGI_APPLICATION = 'medimeet.wsgi.application'
 #     }
 # }
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'medimeet_db_p6wz',
-        'USER': 'medimeet_db_user',
-        'PASSWORD': 'kMTLrR08DSQOEh58EcoHnBy7zhSBONOl',
-        'HOST': 'dpg-cgqcn3keooggt0vok880-a.singapore-postgres.render.com',
-        'PORT': '5432',
-    }
-}
-
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
@@ -132,9 +121,9 @@ DATABASES = {
 #     }
 # }
 
-# DATABASES = {
-#     'default': dj_database_url.parse(os.environ.get("DATABASE_URL"))
-# }
+DATABASES = {
+    'default': dj_database_url.parse(os.environ.get("DATABASE_URL"))
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
