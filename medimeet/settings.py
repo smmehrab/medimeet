@@ -122,7 +122,6 @@ WSGI_APPLICATION = 'medimeet.wsgi.application'
 #     }
 # }
 
-
 DATABASE = os.environ.get('DATABASE')
 DATABASE_USERNAME = os.environ.get('DATABASE_USERNAME')
 DATABASE_PASSWORD = os.environ.get('DATABASE_PASSWORD')
