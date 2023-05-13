@@ -28,8 +28,8 @@ urlpatterns = [
     path('', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 
     path('auth/signin', views.token_generate_view, name='signin'),
-    path('auth/send_otp', views.otp_send_view, name='send_otp'),
-    path('auth/verify_otp', views.otp_verify_view, name='verify_otp'),
+    path('auth/otp/send', views.otp_send_view, name='otp_send'),
+    path('auth/otp/verify', views.otp_verify_view, name='otp_verify'),
 
     path('auth/token', views.token_generate_view, name='token_generate'),
     path('auth/token/verify', views.token_verify_view, name='token_verify'),
