@@ -1,14 +1,6 @@
 from rest_framework import serializers
 from .models import User, Doctor, Session, Appointment, AppointmentStatus, PhoneVerification
-
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import make_password
-from django.core.exceptions import ValidationError
-from django.core.validators import EmailValidator
-
-
-User = get_user_model()
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class UserSerializer(serializers.ModelSerializer):
 
@@ -24,6 +16,42 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data, is_active=True)
+
+class OTPVerificationTokenObtainPairSerializer(TokenObtainPairSerializer):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields.pop('email')
+        self.fields.pop('password')
+
+    def validate(self, attrs):
+        phone = self.context['request'].data.get('phone')
+        otp = self.context['request'].data.get('otp')
+        token = self.context['request'].data.get('token')
+
+        verification = PhoneVerification.objects.filter(
+            phone=phone,
+            token=token,
+        ).last()
+
+        if verification is None:
+            raise serializers.ValidationError('Verification object not found')
+
+        if not verification.is_valid_token():
+            raise serializers.ValidationError('Invalid or expired token')
+        if verification.otp != otp:
+            raise serializers.ValidationError('Incorrect OTP')
+
+        verification.delete()
+
+        attrs['phone'] = phone
+        return super().validate(attrs)
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['fullname', 'email', 'address', 'phone']
+        # read_only_fields = fields
 
 class DoctorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -48,8 +76,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Appointment
-        fields = ['id', 'session', 'patient', 'appointment_type', 'appointment_note', 'status']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'status']
+        fields = ['id', 'session', 'patient', 'appointment_type', 'appointment_note', 'status', 'serial']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'status', 'serial']
 
     def create(self, validated_data):
         validated_data['status'] = AppointmentStatus.PENDING
@@ -58,4 +86,4 @@ class AppointmentSerializer(serializers.ModelSerializer):
 class PhoneVerificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = PhoneVerification
-        fields = ('phone_number', 'otp', 'token')
+        fields = ('user', 'phone', 'otp', 'token')

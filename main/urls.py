@@ -14,10 +14,10 @@ from drf_yasg import openapi
 schema_view = get_schema_view(
    openapi.Info(
       title="MediMeet API",
-      default_version='v1.1',
+      default_version='v1.2',
       description="Doctor Appointment Scheduling App",
       terms_of_service="",
-      contact=openapi.Contact(email="mehrab.24csedu.001@gmail.com"),
+      contact=openapi.Contact(email="smmehrabul-2017614964@cs.du.ac.bd"),
       license=openapi.License(name="Apache License"),
    ),
    public=True,
@@ -27,34 +27,37 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 
-    path('token', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
-    path('token/verify', TokenVerifyView.as_view(), name='token_verify'),
+    path('auth/signin', views.token_generate_view, name='signin'),
+    path('auth/send_otp', views.otp_send_view, name='send_otp'),
+    path('auth/verify_otp', views.otp_verify_view, name='verify_otp'),
 
-    path('patient/signup', views.patient_signup_view),
-    path('patient/signin', views.patient_signin_view),
+    path('auth/token', views.token_generate_view, name='token_generate'),
+    path('auth/token/verify', views.token_verify_view, name='token_verify'),
+    path('auth/token/refresh', views.token_refresh_view, name='token_refresh'),
+    # path('auth/token', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # path('auth/token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
+    # path('auth/token/verify', TokenVerifyView.as_view(), name='token_verify'),
 
-    path('patient/<int:id>/appointments', views.patient_appointment_list_view),
+    path('patient', views.patient_create_view),
+    path('patient/<int:id>', views.patient_profile_view, name="patient_detail"),
+    path('patient/<int:id>/appointments', views.patient_appointment_list_view, name="patient_appointments"),
 
-    path('admin/signin', views.admin_signin_view),
+    path('admin', views.admin_list_create_view, name='admin_list_create'),
+    path('admin/<int:id>', views.admin_detail_view, name='admin_detail'),
 
-    path('doctors', views.doctor_list_create_view, name = 'List of Doctors'),
-    path('doctors/<int:id>/', views.doctor_profile_view, name='Doctor Profile'),
+    path('doctor', views.doctor_list_create_view, name = 'doctor_list_create'),
+    path('doctor/<int:id>', views.doctor_detail_view, name='doctor_detail'),
+    path('doctor/<int:id>/admin', views.doctor_admin_update_view, name='doctor_admin_update'),
 
-    path('session', views.sessions_create_view),
-    path('session/<int:id>', views.sessions_detail_view, name='Session Detail'),
-    path('session/<int:id>/appointments', views.session_appointments_view, name='Appointments list of a Session'),
+    path('session', views.session_list_create_view, name='session_list_create'),
+    path('session/<int:id>', views.sessions_detail_view, name='sessions_detail'),
+    path('session/<int:id>/appointments', views.session_appointments_view, name='session_appointments'),
 
-    path('appointment/<int:id>', views.appointment_view, name='Appointment details'),
-    
-    path('appointment/<int:id>/confirm', views.confirm_cancel_appointment_view, name='Confirm Appointment'),
-    path('appointment/<int:id>/cancel', views.confirm_cancel_appointment_view, name='Cancel Appointment'),
-
-    path('appointment/<int:id>/accept', views.accept_reject_appointment_view, name='Accept Appointment'),
-    path('appointment/<int:id>/reject', views.accept_reject_appointment_view, name='Reject Appointment'),
-
-    path('otp/send', views.otp_send_view, name='Send OTP'),
-    path('otp/verify', views.otp_verify_view, name='Verify OTP'),
+    path('appointment/<int:id>', views.appointment_view, name='appointment_detail'),
+    path('appointment/<int:id>/confirm', views.confirm_cancel_appointment_view, name='confirm_appointment'),
+    path('appointment/<int:id>/cancel', views.confirm_cancel_appointment_view, name='cancel_appointment'),
+    path('appointment/<int:id>/accept', views.accept_reject_appointment_view, name='accept_appointment'),
+    path('appointment/<int:id>/reject', views.accept_reject_appointment_view, name='reject_appointment'),
 
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

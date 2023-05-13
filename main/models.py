@@ -5,61 +5,8 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseU
 from django.core.validators import RegexValidator
 from django.core.exceptions import ValidationError
 
-class PhoneVerification(models.Model):
-    phone_number = models.CharField(max_length=20)
-    otp = models.CharField(max_length=6)
-    token = models.CharField(max_length=32)
-    created_at = models.DateTimeField(default=timezone.now)
-
-    def is_valid_token(self):
-        return self.created_at > timezone.now() - timezone.timedelta(minutes=10)
 
 # ----------------------------------------------
-
-# class Patient(models.Model):
-#     phone_number = models.CharField(max_length=20)
-#     otp = models.CharField(max_length=6)
-#     created_at = models.DateTimeField(default=timezone.now)
-#     is_active = models.BooleanField(default=True)
-
-#     def is_valid_token(self):
-#         return self.created_at > timezone.now() - timezone.timedelta(minutes=10)
-
-# class Admin(models.Model):
-#     email = models.EmailField(_('Email Address'), unique=True)
-#     username = models.CharField(_('Username'), max_length=150, unique=True)
-#     fullname = models.CharField(_('Full Name'), max_length=150, blank=False)
-#     phone = models.CharField(_('Phone Number'), max_length=20, blank=True)
-
-#     address = models.TextField(_('Address'), max_length=500, blank=True)
-
-#     date_joined = models.DateTimeField(default=timezone.now)
-#     is_active = models.BooleanField(default=True)
-
-#     USERNAME_FIELD = 'email'
-#     REQUIRED_FIELDS = ['username', 'fullname', 'phone']
-
-#     def __str__(self):
-#         return self.username
-
-# class Superadmin(models.Model):
-#     email = models.EmailField(_('Email Address'), unique=True)
-#     username = models.CharField(_('Username'), max_length=150, unique=True)
-#     fullname = models.CharField(_('Full Name'), max_length=150, blank=False)
-#     phone = models.CharField(_('Phone Number'), max_length=20, blank=True)
-
-#     address = models.TextField(_('Address'), max_length=500, blank=True)
-
-#     date_joined = models.DateTimeField(default=timezone.now)
-#     is_staff = models.BooleanField(default=True)
-#     is_active = models.BooleanField(default=True)
-#     is_superuser = models.BooleanField(default=True)
-
-#     USERNAME_FIELD = 'email'
-#     REQUIRED_FIELDS = ['username', 'fullname', 'phone']
-
-#     def __str__(self):
-#         return self.username
 
 class UserManager(BaseUserManager):
 
@@ -77,15 +24,21 @@ class UserManager(BaseUserManager):
 
         return self.create_user(email, username, fullname, phone, password, **other_fields)
 
-    def create_admin(self, email, username, password, **other_fields):
+    def create_admin(self, email, username, fullname, phone, password, **other_fields):
         other_fields.setdefault('is_superuser', False)
         other_fields.setdefault('is_staff', True)
         other_fields.setdefault('is_active', True)
 
+        if other_fields.get('is_staff') is not True:
+            raise ValueError('Admin must be assigned to is_staff=True.')
+
+        if not email:
+            raise ValueError(_('Email address must be provided'))
+
         email = self.normalize_email(email)
-        user = self.model(email=email, username=username, **other_fields)
+        user = self.model(email=email, username=username, fullname=fullname, phone=phone, **other_fields)
         user.set_password(password)
-        user.save(using=self._db)
+        user.save()
         return user
 
     def create_user(self, email, username, fullname, phone, password, **other_fields):
@@ -108,7 +61,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(_('Email Address'), unique=True)
     username = models.CharField(_('Username'), max_length=150, unique=True)
     fullname = models.CharField(_('Full Name'), max_length=150, blank=False)
-    phone = models.CharField(_('Phone Number'), max_length=20, blank=True)
+    phone = models.CharField(_('Phone Number'), max_length=20, blank=True, unique=True)
 
     address = models.TextField(_('Address'), max_length=500, blank=True)
 
@@ -118,8 +71,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'fullname', 'phone']
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email', 'fullname', 'phone']
 
     def __str__(self):
         return self.username
@@ -132,6 +85,18 @@ class User(AbstractBaseUser, PermissionsMixin):
         user.set_password(password)
         user.save()
         return user
+
+# ----------------------------------------------
+
+class PhoneVerification(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone = models.CharField(max_length=20)
+    otp = models.CharField(max_length=6)
+    otp_generated_at = models.DateTimeField(default=timezone.now)
+    token = models.CharField(max_length=32)
+
+    def is_valid_token(self):
+        return self.otp_generated_at > timezone.now() - timezone.timedelta(minutes=10)
 
 # ----------------------------------------------
 
@@ -202,13 +167,24 @@ class Appointment(models.Model):
     appointment_type = models.CharField(max_length=255)
     appointment_note = models.TextField(null=True, blank=True)
     status = models.IntegerField(choices=AppointmentStatus.choices, default=AppointmentStatus.PENDING)
+    serial = models.PositiveIntegerField(null=True, blank=True, editable=False)
 
     modified_at = models.DateTimeField(null=False, blank=False, auto_now=True)
 
     def save(self, *args, **kwargs):
+        # Initial Status
         if not self.pk:
-            # Set the default status on creation
             self.status = AppointmentStatus.PENDING
+
+        # Appointment Serial
+        if self.status == AppointmentStatus.CONFIRMED and self.serial is None:
+            # Get the latest confirmed appointment for the same session
+            latest_confirmed = Appointment.objects.filter(session=self.session, status=AppointmentStatus.CONFIRMED).order_by('-serial').first()
+            if latest_confirmed is not None:
+                self.serial = latest_confirmed.serial + 1
+            else:
+                self.serial = 1
+
         super().save(*args, **kwargs)
 
 # ----------------------------------------------

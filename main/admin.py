@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import User, Doctor, Session, Appointment, PhoneVerification
 from django.contrib.auth.admin import UserAdmin
 
-# Register your models here.
+@admin.register(User)
 class UserAdminConfig(UserAdmin):
     model = User
     
@@ -25,8 +25,6 @@ class UserAdminConfig(UserAdmin):
          ),
     )
 
-admin.site.register(User, UserAdminConfig)
-
 @admin.register(Doctor)
 class DoctorAdminConfig(admin.ModelAdmin):
     list_display = ('id', 'fullname', 'department', 'description', 'email', 'phone', 'admin')
@@ -41,11 +39,11 @@ class SessionAdminConfig(admin.ModelAdmin):
 
 @admin.register(Appointment)
 class AppointmentAdminConfig(admin.ModelAdmin):
-    list_display = ('id', 'session', 'patient', 'appointment_type', 'status', 'modified_at')
+    list_display = ('id', 'session', 'patient', 'appointment_type', 'status', 'serial', 'modified_at')
     list_filter = ('session__doctor', 'status')
     search_fields = ('patient__email', 'appointment_type', 'appointment_note')
 
 @admin.register(PhoneVerification)
-class PhoneVerificationAdmin(admin.ModelAdmin):
-    list_display = ['id', 'phone_number', 'otp', 'token', 'created_at']
-    search_fields = ['phone_number']
+class PhoneVerificationAdminConfig(admin.ModelAdmin):
+    list_display = ['id', 'user', 'phone', 'otp', 'otp_generated_at', 'token']
+    search_fields = ['phone']
