@@ -9,12 +9,19 @@ import re
 from rest_framework import generics, permissions, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import (
     PermissionDenied, 
     ValidationError
 )
+
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import (
+    RefreshToken,
+    AccessToken,
+    TokenError
+)
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from django.utils.crypto import get_random_string
 
@@ -28,7 +35,6 @@ from .models import (
 )
 
 from .serializers import (
-    OTPVerificationTokenObtainPairSerializer,
     UserSerializer,
     UserProfileSerializer,
     DoctorSerializer,
@@ -57,11 +63,6 @@ from .permissions import (
     IsAppointmentPatient
 )
 
-from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken, TokenError
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.views import TokenRefreshView
-
 class TokenGenerateView(APIView):
     permission_classes = [AllowAny]
 
@@ -79,7 +80,6 @@ class TokenGenerateView(APIView):
 
         if user:
             authenticated_user = authenticate(username=user.username, password=password)
-            print(authenticated_user)
             if authenticated_user:
                 refresh = RefreshToken.for_user(authenticated_user)
                 token = {
@@ -135,15 +135,24 @@ class OTPSendView(generics.CreateAPIView):
         if user is None:
             return Response({'error': 'User not found with this phone number'}, status=400)
 
+        # Check if a verification object already exists for this phone number
+        verification = PhoneVerification.objects.filter(phone=phone).first()
+
         # Generate an OTP and save it to the user's session
         otp = str(random.randint(100000, 999999))
         token = get_random_string(length=32)
-        verification = PhoneVerification.objects.create(
-            user = user,
-            phone=phone,
-            otp=otp,
-            token=token,
-        )
+
+        if verification is None:
+            verification = PhoneVerification.objects.create(
+                user=user,
+                phone=phone,
+                otp=otp,
+                token=token,
+            )
+        else:
+            verification.otp = otp
+            verification.token = token
+            verification.save()
 
         # Send the OTP to the user's phone number via a third-party SMS API
         # payload = {
@@ -156,9 +165,43 @@ class OTPSendView(generics.CreateAPIView):
 
 otp_send_view = OTPSendView.as_view()
 
-class OTPVerifyView(TokenObtainPairView):
-    permission_classes = [permissions.AllowAny]
-    serializer_class = OTPVerificationTokenObtainPairSerializer
+class OTPVerifyView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+
+        phone = request.data.get('phone')
+        otp = request.data.get('otp')
+        token = request.data.get('token')
+
+        verification = PhoneVerification.objects.filter(
+            phone=phone,
+            token=token,
+        ).last()
+
+        if verification is None:
+            return Response({'error': 'Invalid Credentials'}, status=400)
+
+        if not verification.is_valid_token():
+            return Response({'error': 'Invalid or Expired Token'}, status=400)
+
+        # fetch the user object based on the phone number
+        user = User.objects.filter(phone=phone).first()
+
+        if user is None:
+            return Response({'error': 'User with this phone number does not exist'}, status=400)
+
+        if verification.otp != otp:
+            return Response({'error': 'Incorrect OTP'}, status=400)
+
+        verification.delete()
+
+        refresh = RefreshToken.for_user(user)
+        token = {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
+        return Response(token, status=status.HTTP_200_OK)
 
 otp_verify_view = OTPVerifyView.as_view()
 
