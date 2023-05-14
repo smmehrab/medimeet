@@ -17,8 +17,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from .settings import PRODUCTION
+from django.views.generic import RedirectView
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/api/')),
     path('admin/', admin.site.urls),
     path('api/', include('main.urls')),
 ]
