@@ -2,10 +2,15 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate
+from django.core.mail import send_mail
+from django.http import HttpResponse
 
 import random
 import re
 
+from django.core.files.storage import FileSystemStorage
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import FileUploadParser
 from rest_framework import generics, permissions, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -24,6 +29,9 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from django.utils.crypto import get_random_string
+
+import os
+from django.conf import settings
 
 from .models import (
     User,
@@ -438,6 +446,120 @@ class DoctorAdminUpdateAPIView(generics.UpdateAPIView):
 
 doctor_admin_update_view = DoctorAdminUpdateAPIView.as_view()
 
+class DoctorImageAPIView(APIView):
+    name = 'Doctor Image'
+    parser_classes = [MultiPartParser, FormParser]
+    PATH = os.path.join(settings.MEDIA_ROOT, 'doctors')
+
+    def get_object(self, id):
+        try:
+            return Doctor.objects.get(id=id)
+        except Doctor.DoesNotExist:
+            return Response({'doctor_id': 'Invalid Doctor ID'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request, id):
+        doctor = self.get_object(id=id)
+
+        image = doctor.image_url
+
+        if not image:
+            return Response({'image_url': 'None'}, status=status.HTTP_404_NOT_FOUND)
+
+        extension = image.split('.')[-1].lower()
+        image_path = os.path.join(DoctorImageAPIView.PATH, image)
+
+        # Check if the file exists before trying to open it
+        if not os.path.exists(image_path):
+            return Response({'image_url': '[Bad] Image Not Available'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Open the image file using the file system
+        fs = FileSystemStorage(location=DoctorImageAPIView.PATH)
+        image_file = fs.open(image)
+
+        # Set the content type based on the file extension
+        if extension == 'jpg' or extension == 'jpeg':
+            content_type = 'image/jpeg'
+        elif extension == 'png':
+            content_type = 'image/png'
+        else:
+            content_type = 'image/*'
+
+        # Return the image file as a response
+        response = HttpResponse(image_file, content_type=content_type)
+        return response
+
+    def post(self, request, id):
+        doctor = self.get_object(id)
+
+        # Save the uploaded file to the file system using FileSystemStorage
+        image_file = request.FILES['image']
+        extension = image_file.name.split('.')[-1].lower()
+        filename = f"{id}.{extension}"
+        fs = FileSystemStorage(location=DoctorImageAPIView.PATH)
+        fs.save(filename, image_file)
+
+        # Update the doctor's image_url field
+        doctor.image_url = filename
+        doctor.save()
+
+        return Response({'success': 'Image uploaded successfully', 'image_url': doctor.image_url})
+
+    def put(self, request, id, format=None):
+        doctor = self.get_object(id)
+
+        new_image_file = request.FILES.get('image', None)
+        new_image_extension = new_image_file.name.split('.')[-1].lower()
+
+        if new_image_file is None:
+            return Response({'error': 'No image file provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Delete the old image
+        old_image = doctor.image_url
+        if old_image:
+            old_image_path = os.path.join(DoctorImageAPIView.PATH, old_image)
+            if os.path.exists(old_image_path):
+                fs = FileSystemStorage(location=DoctorImageAPIView.PATH)
+                fs.delete(old_image)
+
+        # Save the uploaded file to the file system using FileSystemStorage
+        filename = f"{id}.{new_image_extension}"
+        fs = FileSystemStorage(location=DoctorImageAPIView.PATH)
+        fs.save(filename, new_image_file)
+
+        # Update the doctor's image_url field
+        doctor.image_url = filename
+        doctor.save()
+
+        return Response({'success': 'Image updated successfully', 'image_url': doctor.image_url})
+
+    def delete(self, request, id, format=None):
+        doctor = self.get_object(id)
+
+        image = doctor.image_url
+
+        # Update the doctor's image_url field
+        doctor.image_url = None
+        doctor.save()
+
+        # Delete the image file from the file system using FileSystemStorage
+        if image is not None:
+            fs = FileSystemStorage(location=DoctorImageAPIView.PATH)
+            try:
+                fs.delete(image)
+            except FileNotFoundError:
+                return Response({'image_url': 'Image Not Found'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'success': 'Image deleted successfully', 'image_url': doctor.image_url})
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsSuperUser]
+        return [permission() for permission in permission_classes]
+
+doctor_image_view = DoctorImageAPIView.as_view()
+
 # ----------------------------------------------
 
 class SessionListCreateAPIView(generics.ListCreateAPIView):
@@ -654,6 +776,16 @@ class AcceptRejectAppointmentView(generics.UpdateAPIView):
         if 'accept' in request.path:
             if instance.status == AppointmentStatus.PENDING:
                 instance.status = AppointmentStatus.ACCEPTED
+
+                # send email to patient
+                # send_mail(
+                #     'Appointment Booked',
+                #     'Your appointment has been booked. Serial Number would be decided upon arrival.',
+                #     'from@example.com', 
+                #     [instance.patient.email],
+                #     fail_silently=False,
+                # )
+
             else:
                 raise ValidationError('Appointment is already handled.')
         elif 'reject' in request.path:
@@ -662,6 +794,7 @@ class AcceptRejectAppointmentView(generics.UpdateAPIView):
             else:
                 raise ValidationError('Appointment is already handled.')
         instance.save()
+
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 

@@ -19,7 +19,7 @@ load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
@@ -240,7 +240,16 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
 
+# SMS
 PHONE_NUMBER_REGEX = '(^([+]{1}[8]{2}|88)?(01){1}[3-9]{1}\d{8})$'
 SMS_URL = os.environ.get("SMS_URL")
 SMS_API_KEY = os.environ.get("SMS_API_KEY")
 
+# Email
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'medimeet.bd' # replace with your email address
+# EMAIL_HOST_PASSWORD = '' # replace with your email password
+# DEFAULT_FROM_EMAIL = 'medimeet.bd@gmail.com' # replace with your preferred from email address

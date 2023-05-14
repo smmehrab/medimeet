@@ -48,6 +48,7 @@ urlpatterns = [
     path('doctor', views.doctor_list_create_view, name = 'doctor_list_create'),
     path('doctor/<int:id>', views.doctor_detail_view, name='doctor_detail'),
     path('doctor/<int:id>/admin', views.doctor_admin_update_view, name='doctor_admin_update'),
+    path('doctor/<int:id>/image', views.doctor_image_view, name='doctor_image'),
 
     path('session', views.session_list_create_view, name='session_list_create'),
     path('session/<int:id>', views.sessions_detail_view, name='sessions_detail'),

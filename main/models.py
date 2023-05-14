@@ -115,7 +115,7 @@ class Doctor(models.Model):
     fullname = models.CharField(max_length=255)
     department = models.CharField(max_length=255, choices=DEPARTMENT_CHOICES)
     description = models.TextField(blank=True)
-    image_url = models.CharField(max_length=255, blank=True)
+    image_url = models.CharField(max_length=255, blank=True, null=True, default=None)
     # image_url = models.URLField(null=True, blank=True)
     email = models.EmailField()
     # phone = models.CharField(max_length=10, validators=[RegexValidator(r'^\d{10}$')])
