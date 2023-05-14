@@ -732,30 +732,23 @@ appointment_view = AppointmentView.as_view()
 
 # ----------------------------------------------
 
-class ConfirmCancelAppointmentView(generics.UpdateAPIView):
+class ConfirmAppointmentView(generics.UpdateAPIView):
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
     lookup_field = 'id'
 
-    def get_object(self):
-        id = self.kwargs['id']
-        return Appointment.objects.filter(id=id).first()
-
     def update(self, request, *args, **kwargs):
         self.check_permissions(request)
-        instance = self.get_object()
-        if 'confirm' in request.path:
-            if instance.status == AppointmentStatus.ACCEPTED:
-                instance.status = AppointmentStatus.CONFIRMED
-            else:
-                raise ValidationError('Appointment is already cancelled.')
-        elif 'cancel' in request.path:
-            if instance.status != AppointmentStatus.CONFIRMED:
-                instance.status = AppointmentStatus.UNATTENDED
-            else:
-                raise ValidationError('Appointment is already confirmed.')
-        instance.save()
-        serializer = self.get_serializer(instance)
+
+        appointment = self.get_object()
+        
+        if appointment.status == AppointmentStatus.ACCEPTED:
+            appointment.status = AppointmentStatus.CONFIRMED
+        else:
+            raise ValidationError('Appointment is not in ACCEPTED status.')
+        
+        appointment.save()
+        serializer = self.get_serializer(appointment)
         return Response(serializer.data)
 
     def get_permissions(self):
@@ -763,44 +756,91 @@ class ConfirmCancelAppointmentView(generics.UpdateAPIView):
             return [IsAppointmentPatient()]
         return []
 
-confirm_cancel_appointment_view = ConfirmCancelAppointmentView.as_view()
+confirm_appointment_view = ConfirmAppointmentView.as_view()
 
-class AcceptRejectAppointmentView(generics.UpdateAPIView):
+class CancelAppointmentView(generics.UpdateAPIView):
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
     lookup_field = 'id'
 
     def update(self, request, *args, **kwargs):
         self.check_permissions(request)
-        instance = self.get_object()
-        if 'accept' in request.path:
-            if instance.status == AppointmentStatus.PENDING:
-                instance.status = AppointmentStatus.ACCEPTED
 
-                # send email to patient
-                # send_mail(
-                #     'Appointment Booked',
-                #     'Your appointment has been booked. Serial Number would be decided upon arrival.',
-                #     'from@example.com', 
-                #     [instance.patient.email],
-                #     fail_silently=False,
-                # )
+        appointment = self.get_object()
+        if appointment.status != AppointmentStatus.CONFIRMED:
+            appointment.status = AppointmentStatus.UNATTENDED
+        else:
+            raise ValidationError('Appointment is already in CONFIRMED status')
 
-            else:
-                raise ValidationError('Appointment is already handled.')
-        elif 'reject' in request.path:
-            if instance.status == AppointmentStatus.PENDING:
-                instance.status = AppointmentStatus.REJECTED
-            else:
-                raise ValidationError('Appointment is already handled.')
-        instance.save()
+        appointment.save()
+        serializer = self.get_serializer(appointment)
+        return Response(serializer.data)
 
-        serializer = self.get_serializer(instance)
+    def get_permissions(self):
+        if self.request.method == 'PUT':
+            return [IsAppointmentPatient()]
+        return []
+
+cancel_appointment_view = CancelAppointmentView.as_view()
+
+class AcceptAppointmentView(generics.UpdateAPIView):
+    queryset = Appointment.objects.all()
+    serializer_class = AppointmentSerializer
+    lookup_field = 'id'
+
+    def update(self, request, *args, **kwargs):
+        self.check_permissions(request)
+
+        appointment = self.get_object()
+        if appointment.status == AppointmentStatus.PENDING:
+            appointment.status = AppointmentStatus.ACCEPTED
+
+            # send email to patient
+            # send_mail(
+            #     'Appointment Booked',
+            #     'Your appointment has been booked. Serial Number would be decided upon arrival.',
+            #     'from@example.com', 
+            #     [instance.patient.email],
+            #     fail_silently=False,
+            # )
+
+        else:
+            raise ValidationError('Appointment is not in PENDING status.')
+
+        appointment.save()
+        serializer = self.get_serializer(appointment)
         return Response(serializer.data)
 
     def get_permissions(self):
         if self.request.method == 'PUT':
             return [IsAppointmentSessionAdmin()]
         return []
-    
-accept_reject_appointment_view = AcceptRejectAppointmentView.as_view()
+
+accept_appointment_view = AcceptAppointmentView.as_view()
+
+
+
+class RejectAppointmentView(generics.UpdateAPIView):
+    queryset = Appointment.objects.all()
+    serializer_class = AppointmentSerializer
+    lookup_field = 'id'
+
+    def update(self, request, *args, **kwargs):
+        self.check_permissions(request)
+
+        appointment = self.get_object()
+        if appointment.status == AppointmentStatus.PENDING:
+            appointment.status = AppointmentStatus.REJECTED
+        else:
+            raise ValidationError('Appointment is not in PENDING status.')
+
+        appointment.save()
+        serializer = self.get_serializer(appointment)
+        return Response(serializer.data)
+
+    def get_permissions(self):
+        if self.request.method == 'PUT':
+            return [IsAppointmentSessionAdmin()]
+        return []
+
+reject_appointment_view = RejectAppointmentView.as_view()

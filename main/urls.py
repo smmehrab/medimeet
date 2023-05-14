@@ -55,10 +55,10 @@ urlpatterns = [
     path('session/<int:id>/appointments', views.session_appointments_view, name='session_appointments'),
 
     path('appointment/<int:id>', views.appointment_view, name='appointment_detail'),
-    path('appointment/<int:id>/confirm', views.confirm_cancel_appointment_view, name='confirm_appointment'),
-    path('appointment/<int:id>/cancel', views.confirm_cancel_appointment_view, name='cancel_appointment'),
-    path('appointment/<int:id>/accept', views.accept_reject_appointment_view, name='accept_appointment'),
-    path('appointment/<int:id>/reject', views.accept_reject_appointment_view, name='reject_appointment'),
+    path('appointment/<int:id>/confirm', views.confirm_appointment_view, name='confirm_appointment'),
+    path('appointment/<int:id>/cancel', views.cancel_appointment_view, name='cancel_appointment'),
+    path('appointment/<int:id>/accept', views.accept_appointment_view, name='accept_appointment'),
+    path('appointment/<int:id>/reject', views.reject_appointment_view, name='reject_appointment'),
 
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
