@@ -1,5 +1,13 @@
 from django.contrib import admin
-from .models import User, Doctor, Session, Appointment, PhoneVerification
+from .models import (
+    User,
+    Doctor,
+    Session,
+    Appointment,
+    PhoneVerification,
+    Payment
+)
+
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.admin import DateFieldListFilter
 
@@ -48,3 +56,10 @@ class AppointmentAdminConfig(admin.ModelAdmin):
 class PhoneVerificationAdminConfig(admin.ModelAdmin):
     list_display = ['id', 'user', 'phone', 'otp', 'otp_generated_at', 'token']
     search_fields = ['phone']
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('payment_id', 'create_time', 'update_time', 'transaction_status', 'amount', 'currency', 'intent', 'merchant_invoice_number', 'refund_amount', 'appointment')
+    search_fields = ('payment_id', 'trx_id', 'merchant_invoice_number')
+    list_filter = ('transaction_status', 'currency')
+    readonly_fields = ('payment_id', 'create_time', 'update_time', 'trx_id', 'transaction_status', 'amount', 'currency', 'intent', 'merchant_invoice_number', 'refund_amount')

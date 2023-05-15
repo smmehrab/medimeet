@@ -6,6 +6,10 @@ from django.core.mail import send_mail
 from django.http import HttpResponse
 from django.utils import timezone
 
+import json
+from django.http import JsonResponse
+
+import requests
 import random
 import re
 
@@ -41,6 +45,7 @@ from .models import (
     Appointment,
     AppointmentStatus,
     PhoneVerification,
+    Payment,
 )
 
 from .serializers import (
@@ -937,11 +942,64 @@ class ConfirmAppointmentView(generics.UpdateAPIView):
         appointment = self.get_object()
         
         if appointment.status == AppointmentStatus.ACCEPTED:
-            appointment.status = AppointmentStatus.CONFIRMED
-            # Increment the confirmed_appointments count of the session
-            session_confirmed_appointments =  appointment.session.confirmed_appointments
-            appointment.session.confirmed_appointments = session_confirmed_appointments + 1
-            appointment.session.save()
+
+            payment_id = request.data['payment_id']
+
+            if not payment_id:
+                raise ValidationError('Payment ID is required to Confirm Appointment')
+
+            # Actual API call to bKash API
+            url = 'https://checkout.sandbox.bka.sh/v1.2.0-beta/checkout/payment/query/' + str(payment_id)
+            # response = requests.get(url)
+
+            # Dummy API call to bKash API
+            data = {
+                "paymentID": payment_id,
+                "createTime": "string",
+                "updateTime": "string",
+                "trxID": "string",
+                "transactionStatus": "string",
+                "amount": 100,
+                "currency": "string",
+                "intent": "string",
+                "merchantInvoiceNumber": "string",
+                "refundAmount": "string"
+            }
+            # Create a JSON response with the data and status code 200
+            response = JsonResponse(data, status=200)
+
+            if response.status_code == 200:
+                # api_data = response.data
+                api_data = json.loads(response.content)
+                # Create a Payment instance with the API response data
+                payment = Payment(
+                    payment_id=api_data['paymentID'],
+                    create_time=api_data['createTime'],
+                    update_time=api_data['updateTime'],
+                    trx_id=api_data['trxID'],
+                    transaction_status=api_data['transactionStatus'],
+                    amount=api_data['amount'],
+                    currency=api_data['currency'],
+                    intent=api_data['intent'],
+                    merchant_invoice_number=api_data['merchantInvoiceNumber'],
+                    refund_amount=api_data['refundAmount'],
+                    appointment=appointment
+                )
+                # Save the Payment instance to the database
+                payment.save()
+
+                if payment.amount != 100:
+                    raise ValidationError('Invalid Payment Amount')
+
+                # Confirm appointment
+                appointment.status = AppointmentStatus.CONFIRMED
+                # Increment the confirmed_appointments count of the session
+                session_confirmed_appointments =  appointment.session.confirmed_appointments
+                appointment.session.confirmed_appointments = session_confirmed_appointments + 1
+                appointment.session.save()
+            else:
+                return HttpResponse('API call failed')
+
         else:
             raise ValidationError('Appointment is not in ACCEPTED status.')
         

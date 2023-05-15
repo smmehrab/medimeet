@@ -31,7 +31,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # DEBUG = 'RENDER' not in os.environ
 DEBUG = True
 PRODUCTION = False
-APPEND_SLASH = False
+APPEND_SLASH = True
 
 ALLOWED_HOSTS = ["*"]
 

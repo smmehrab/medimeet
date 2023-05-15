@@ -25,13 +25,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class DoctorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
-        fields = ['id', 'fullname', 'title', 'department', 'description', 'image_url', 'email', 'phone', 'admin']
+        fields = ['id', 'fullname', 'title', 'department', 'description', 'image_url', 'email', 'phone', 'admin', 'visiting_fee']
         read_only_fields = ['id', 'admin']
 
 class DoctorProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Doctor
-        fields = ['fullname', 'title', 'department', 'description', 'image_url']
+        fields = ['fullname', 'title', 'department', 'description', 'image_url', 'visiting_fee']
         read_only_fields = fields
 
 class SessionSerializer(serializers.ModelSerializer):

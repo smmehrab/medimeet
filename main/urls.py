@@ -3,6 +3,7 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from . import views
+from django.views.generic import RedirectView
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -44,6 +45,7 @@ urlpatterns = [
     path('admin/<int:id>', views.admin_detail_view, name='admin_detail'),
 
     # Doctor
+    path('doctor/', views.doctor_list_create_view, name='doctor_list_create'),
     path('doctor', views.doctor_list_create_view, name='doctor_list_create'),
     path('doctor/', include([
         path('<int:id>', views.doctor_detail_view, name='doctor_detail'),

@@ -126,6 +126,7 @@ class Doctor(models.Model):
     # phone = models.CharField(max_length=10, validators=[RegexValidator(r'^\d{10}$')])
     phone = models.CharField(max_length=10, blank=True, validators=[])
     admin = models.ForeignKey(User, on_delete=models.SET_NULL, limit_choices_to={'is_staff': True}, null=True)
+    visiting_fee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=None)
 
     def __str__(self):
         return self.fullname
@@ -188,6 +189,9 @@ class Appointment(models.Model):
 
     modified_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self) -> str:
+        return str(self.id)
+
     def save(self, *args, **kwargs):
         # Initial Status
         if not self.pk:
@@ -206,4 +210,20 @@ class Appointment(models.Model):
 
 # ----------------------------------------------
 
+class Payment(models.Model):
+    payment_id = models.CharField(max_length=255, unique=True)
+    create_time = models.CharField(max_length=255)
+    update_time = models.CharField(max_length=255)
+    trx_id = models.CharField(max_length=255)
+    transaction_status = models.CharField(max_length=255)
+    amount = models.CharField(max_length=255)
+    currency = models.CharField(max_length=255)
+    intent = models.CharField(max_length=255)
+    merchant_invoice_number = models.CharField(max_length=255)
+    refund_amount = models.CharField(max_length=255)
+    appointment = models.ForeignKey(Appointment, on_delete=models.SET_NULL, null=True)
 
+    def __str__(self):
+        return self.payment_id
+
+# ----------------------------------------------
