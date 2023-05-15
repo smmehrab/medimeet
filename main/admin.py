@@ -36,7 +36,7 @@ class UserAdminConfig(UserAdmin):
 
 @admin.register(Doctor)
 class DoctorAdminConfig(admin.ModelAdmin):
-    list_display = ('id', 'fullname', 'title', 'department', 'description', 'email', 'image_url', 'phone', 'admin')
+    list_display = ('id', 'fullname', 'title', 'department', 'description', 'email', 'image_url', 'phone', 'admin', 'visiting_fee')
     list_filter = ('admin',)
     search_fields = ('fullname', 'title', 'email', 'department', 'phone')
 
