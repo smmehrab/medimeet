@@ -77,6 +77,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.username
 
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.date_joined = timezone.now()
+        return super().save(*args, **kwargs)
+
     # Only for Django Admin Panel
     @classmethod
     def create(cls, **kwargs):
@@ -113,10 +118,10 @@ class Doctor(models.Model):
     ]
 
     fullname = models.CharField(max_length=255)
+    title = models.CharField(max_length=255)
     department = models.CharField(max_length=255, choices=DEPARTMENT_CHOICES)
     description = models.TextField(blank=True)
     image_url = models.CharField(max_length=255, blank=True, null=True, default=None)
-    # image_url = models.URLField(null=True, blank=True)
     email = models.EmailField()
     # phone = models.CharField(max_length=10, validators=[RegexValidator(r'^\d{10}$')])
     phone = models.CharField(max_length=10, blank=True, validators=[])
@@ -133,9 +138,20 @@ class Doctor(models.Model):
 class Session(models.Model):
     admin = models.ForeignKey(User, on_delete=models.SET_NULL, limit_choices_to={'is_staff': True}, null=True)
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, null=False)
+    
     start_time = models.DateTimeField(null=False, blank=False, default=timezone.now)
     end_time = models.DateTimeField(null=False, blank=False, default=timezone.now)
+    
     max_appointments = models.PositiveSmallIntegerField(null=False, blank=False)
+
+    booked_appointments = models.PositiveSmallIntegerField(default=0)
+    confirmed_appointments = models.PositiveSmallIntegerField(default=0)
+    attended_appointments = models.PositiveSmallIntegerField(default=0)
+
+    modified_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return str(self.id)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -162,6 +178,7 @@ class AppointmentStatus(models.IntegerChoices):
     REJECTED = -1, _('Rejected')
 
 class Appointment(models.Model):
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, null=False)
     session = models.ForeignKey(Session, on_delete=models.CASCADE, null=False)
     patient = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'is_staff': False}, null=False)
     appointment_type = models.CharField(max_length=255)
@@ -169,7 +186,7 @@ class Appointment(models.Model):
     status = models.IntegerField(choices=AppointmentStatus.choices, default=AppointmentStatus.PENDING)
     serial = models.PositiveIntegerField(null=True, blank=True, editable=False)
 
-    modified_at = models.DateTimeField(null=False, blank=False, auto_now=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
         # Initial Status

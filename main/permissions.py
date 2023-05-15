@@ -1,5 +1,6 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 from .models import Doctor, Session, Appointment
+from django.shortcuts import get_object_or_404
 
 # class CustomPermission(permissions.DjangoModelPermissions):
 #     perms_map = {
@@ -25,7 +26,7 @@ class IsUserSelf(BasePermission):
 class IsAppointmentSessionAdmin(BasePermission):
     def has_permission(self, request, view):
         appointment_id = view.kwargs.get('id')
-        appointment = Appointment.objects.filter(id=appointment_id).first()
+        appointment = get_object_or_404(Appointment, id=appointment_id)
         session = Session.objects.filter(id=appointment.session.id, admin=request.user).first()
         return session is not None
 

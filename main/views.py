@@ -4,13 +4,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from django.http import HttpResponse
+from django.utils import timezone
 
 import random
 import re
 
 from django.core.files.storage import FileSystemStorage
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import MultiPartParser, FormParser
-from rest_framework.parsers import FileUploadParser
 from rest_framework import generics, permissions, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -72,6 +73,7 @@ from .permissions import (
 )
 
 class TokenGenerateView(APIView):
+    name = "Generate JWT Token Pair"
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -103,6 +105,7 @@ class TokenGenerateView(APIView):
 token_generate_view = TokenGenerateView.as_view()
 
 class TokenVerifyView(APIView):
+    name = "Verify JWT Token"
     authentication_classes = [JWTAuthentication]
     permission_classes = [AllowAny]
 
@@ -118,6 +121,7 @@ class TokenVerifyView(APIView):
 token_verify_view = TokenVerifyView.as_view()
 
 class TokenRefreshView(TokenRefreshView):
+    name = "Verify JWT Token"
     pass
 
 token_refresh_view = TokenRefreshView.as_view()
@@ -125,6 +129,7 @@ token_refresh_view = TokenRefreshView.as_view()
 # ----------------------------------------------
 
 class OTPSendView(generics.CreateAPIView):
+    name = "Send OTP"
     permission_classes = [permissions.AllowAny]
     serializer_class = PhoneVerificationSerializer
 
@@ -174,6 +179,7 @@ class OTPSendView(generics.CreateAPIView):
 otp_send_view = OTPSendView.as_view()
 
 class OTPVerifyView(APIView):
+    name = "Verify OTP and Generate JWT Token Pair"
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -216,11 +222,20 @@ otp_verify_view = OTPVerifyView.as_view()
 # ----------------------------------------------
 
 class AdminListCreateAPIView(generics.ListCreateAPIView):
+    name = "Admin List and Create"
     serializer_class = UserSerializer
     permission_classes = [IsSuperUser]
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
         return User.objects.filter(is_staff=True, is_superuser=False)
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        # if not queryset.exists():
+        #     return Response({'error': 'No Admin Found'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -240,6 +255,7 @@ class AdminListCreateAPIView(generics.ListCreateAPIView):
 admin_list_create_view = AdminListCreateAPIView.as_view()
 
 class AdminDetailView(generics.RetrieveUpdateDestroyAPIView):
+    name = "Admin Details"
     queryset = User.objects.filter(is_staff=True, is_superuser=False, is_active=True)
     lookup_field = 'id'
     name = 'Admin Details'
@@ -289,6 +305,7 @@ admin_detail_view = AdminDetailView.as_view()
 # ----------------------------------------------
 
 class PatientCreateView(generics.CreateAPIView):
+    name = "Patient Create"
     permission_classes = [AllowAny]
     serializer_class = UserSerializer
     allowed_methods = ['POST']
@@ -308,6 +325,7 @@ class PatientCreateView(generics.CreateAPIView):
 patient_create_view = PatientCreateView.as_view()
 
 class PatientProfileDetailView(generics.RetrieveAPIView):
+    name = "Patient Profile"
     queryset = User.objects.all()
     serializer_class = UserProfileSerializer
     lookup_field = 'id'
@@ -324,8 +342,10 @@ class PatientProfileDetailView(generics.RetrieveAPIView):
 patient_profile_view = PatientProfileDetailView.as_view()
 
 class PatientAppointmentListAPIView(generics.ListAPIView):
+    name = "Patient Appointment List"
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
         patient_id = self.kwargs['id']
@@ -351,11 +371,25 @@ patient_appointment_list_view = PatientAppointmentListAPIView.as_view()
 # ----------------------------------------------
 
 class DoctorListCreateAPIView(generics.ListCreateAPIView):
-    serializer_class = DoctorSerializer
-    name = 'Get List of Doctors / Create a Doctor'
+    name = "Doctor List and Create"
+    pagination_class = PageNumberPagination
+
+    def get_serializer_class(self):
+        if self.request.user.is_superuser:
+            return DoctorSerializer
+        else:
+            return DoctorProfileSerializer
 
     def get_queryset(self):
         return Doctor.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response({'error': 'No Doctor Found'}, status=status.HTTP_404_NOT_FOUND)
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(queryset, many=True)
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         self.check_permissions(request)
@@ -375,9 +409,9 @@ class DoctorListCreateAPIView(generics.ListCreateAPIView):
 doctor_list_create_view = DoctorListCreateAPIView.as_view()
 
 class DoctorRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    name = "Doctor Details"
     queryset = Doctor.objects.all()
     lookup_field = 'id'
-    name='Doctor Details'
 
     def get_serializer_class(self):
         if self.request.user.is_superuser:
@@ -415,6 +449,7 @@ class DoctorRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
 doctor_detail_view = DoctorRetrieveUpdateDestroyAPIView.as_view()
 
 class DoctorAdminUpdateAPIView(generics.UpdateAPIView):
+    name = "Doctor Admin Update"
     serializer_class = DoctorSerializer
     permission_classes = [permissions.IsAdminUser]
     queryset = Doctor.objects.all()
@@ -455,10 +490,13 @@ class DoctorImageAPIView(APIView):
         try:
             return Doctor.objects.get(id=id)
         except Doctor.DoesNotExist:
-            return Response({'doctor_id': 'Invalid Doctor ID'}, status=status.HTTP_400_BAD_REQUEST)
+            raise ValidationError({'doctor_id': 'Invalid Doctor ID'})
 
     def get(self, request, id):
-        doctor = self.get_object(id=id)
+        try:
+            doctor = self.get_object(id=id)
+        except ValidationError as e:
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
         image = doctor.image_url
 
@@ -563,20 +601,48 @@ doctor_image_view = DoctorImageAPIView.as_view()
 # ----------------------------------------------
 
 class SessionListCreateAPIView(generics.ListCreateAPIView):
+    name = "Session List and Create"
     queryset = Session.objects.all()
     serializer_class = SessionSerializer
-    name = "Create Session / Get Session List of a Doctor"
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
-        # "__" used to access the table of the foreign key, in which, the foreign key is actually the primary key
+
         doctor_id = self.request.query_params.get('doctor_id')
-        return Session.objects.filter(doctor__id=doctor_id, doctor__admin=self.request.user)
+
+        if doctor_id is None:
+            return Response({'error': f'No doctor_id Provided'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            doctor = Doctor.objects.get(id=doctor_id)
+        except Doctor.DoesNotExist:
+            return Response({'error': f'No Doctor Found with doctor_id=={doctor_id}'}, status=status.HTTP_404_NOT_FOUND)
+
+        # queryset = Session.objects.filter(doctor__id=doctor_id)
+        queryset = Session.objects.filter(doctor=doctor)
+
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+
+        if start_date and end_date:
+            queryset = queryset.filter(start_time__gte=start_date, start_time__lte=end_date)
+            queryset = queryset.order_by('start_time')
+        elif start_date:
+            queryset = queryset.filter(start_time__gte=start_date)
+            queryset = queryset.order_by('start_time')
+        elif end_date:
+            queryset = queryset.filter(start_time__lte=end_date)
+            queryset = queryset.order_by('-end_time')
+        else:
+            queryset = queryset.filter(start_time__gte=timezone.now())
+            queryset = queryset.order_by('start_time')
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def get(self, request, *args, **kwargs):
         self.check_permissions(request)
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return self.get_queryset()
 
     def create(self, request, *args, **kwargs):
         self.check_permissions(request)
@@ -588,7 +654,7 @@ class SessionListCreateAPIView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'GET':
-            return [IsDoctorAdmin()]
+            return [AllowAny()]
         elif self.request.method == 'POST':
             return [IsDoctorAdmin()]
         return []
@@ -596,6 +662,7 @@ class SessionListCreateAPIView(generics.ListCreateAPIView):
 session_list_create_view = SessionListCreateAPIView.as_view()
 
 class SessionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    name = "Session Detail"
     queryset = Session.objects.all()
     serializer_class = SessionSerializer
     lookup_field = 'id'
@@ -626,7 +693,9 @@ class SessionDetailView(generics.RetrieveUpdateDestroyAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def get_permissions(self):
-        if self.request.method in ['GET', 'DELETE', 'PUT', 'PATCH']:
+        if self.request.method == 'GET':
+            return [AllowAny()]
+        if self.request.method in ['DELETE', 'PUT', 'PATCH']:
             return [IsDoctorSessionAdmin()]
         return []
 
@@ -635,9 +704,11 @@ sessions_detail_view = SessionDetailView.as_view()
 
 # ----------------------------------------------
 
-class AppointmentListView(generics.ListCreateAPIView):
+class AppointmentListCreateView(generics.ListCreateAPIView):
+    name = "Appointment List and Create"
     serializer_class = AppointmentSerializer
     lookup_field = 'id'
+    pagination_class = PageNumberPagination
 
     def get_queryset(self):
         session_id = self.kwargs['id']
@@ -645,23 +716,38 @@ class AppointmentListView(generics.ListCreateAPIView):
 
     def get(self, request, *args, **kwargs):
         """
-        Get a List of Appointments of a specific Session
+            Get a List of Appointments of a specific Session
         """
 
         self.check_permissions(request)
         queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response({'error': 'No Appointment Found'}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     def post(self, request, *args, **kwargs):
         """
-        Add a Appointment to a specific Session 
+            Add a Appointment to a specific Session 
         """
         self.check_permissions(request)
+
+        try:
+            session = Session.objects.get(pk=self.kwargs['id'])
+        except Session.DoesNotExist:
+            return Response({'error': 'Invalid Session ID'}, status=status.HTTP_400_BAD_REQUEST)
+
+        existing_appointment = Appointment.objects.filter(session=session, patient=request.user)
+        if existing_appointment.exists():
+            return Response({'error': 'You already have an appointment for this session.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.data['session'] = session.id
+        request.data['patient'] = request.user.id
+
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            if serializer.validated_data['patient'] != request.user:
-                raise PermissionDenied("Invalid Patient ID")
+            if (session.booked_appointments + session.confirmed_appointments) >= session.max_appointments:
+                raise ValidationError('Session is fully booked. Please try another session.')
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -673,35 +759,23 @@ class AppointmentListView(generics.ListCreateAPIView):
             return [IsNotAdmin(), IsAuthenticated()]
         return []
 
-session_appointments_view = AppointmentListView.as_view()
+appointment_list_create_view = AppointmentListCreateView.as_view()
 
 class AppointmentView(generics.RetrieveUpdateDestroyAPIView):
+    name = "Appointment Details"
+    queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
     lookup_field = 'id'
 
-    def get_queryset(self):
-        appointment_id = self.kwargs['id']
-        return Appointment.objects.filter(id=appointment_id)
-
     def get(self, request, *args, **kwargs):
-        """
-        Get a specific Appointment of a specific Session 
-        """
-
         self.check_permissions(request)
         appointment = self.get_object()
-
         serializer = self.get_serializer(appointment)
         return Response(serializer.data)
 
     def put(self, request, *args, **kwargs):
-        """
-        Modify Appointment of a specific Session 
-        """
-
         self.check_permissions(request)
         appointment = self.get_object()
-
         serializer = self.get_serializer(appointment, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -709,14 +783,9 @@ class AppointmentView(generics.RetrieveUpdateDestroyAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, *args, **kwargs):
-        """
-        Delete Appointment of a specific Session 
-        """
-
         self.check_permissions(request)
         appointment = self.get_object()
         appointment.delete()
-
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_permissions(self):
@@ -733,6 +802,7 @@ appointment_view = AppointmentView.as_view()
 # ----------------------------------------------
 
 class ConfirmAppointmentView(generics.UpdateAPIView):
+    name = "Confirm Appointment"
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
     lookup_field = 'id'
@@ -744,6 +814,10 @@ class ConfirmAppointmentView(generics.UpdateAPIView):
         
         if appointment.status == AppointmentStatus.ACCEPTED:
             appointment.status = AppointmentStatus.CONFIRMED
+            # Increment the confirmed_appointments count of the session
+            session_confirmed_appointments =  appointment.session.confirmed_appointments
+            appointment.session.confirmed_appointments = session_confirmed_appointments + 1
+            appointment.session.save()
         else:
             raise ValidationError('Appointment is not in ACCEPTED status.')
         
@@ -759,6 +833,7 @@ class ConfirmAppointmentView(generics.UpdateAPIView):
 confirm_appointment_view = ConfirmAppointmentView.as_view()
 
 class CancelAppointmentView(generics.UpdateAPIView):
+    name = "Cancel Appointment"
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
     lookup_field = 'id'
@@ -784,6 +859,7 @@ class CancelAppointmentView(generics.UpdateAPIView):
 cancel_appointment_view = CancelAppointmentView.as_view()
 
 class AcceptAppointmentView(generics.UpdateAPIView):
+    name = "Accept Appointment"
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
     lookup_field = 'id'
@@ -794,7 +870,10 @@ class AcceptAppointmentView(generics.UpdateAPIView):
         appointment = self.get_object()
         if appointment.status == AppointmentStatus.PENDING:
             appointment.status = AppointmentStatus.ACCEPTED
-
+            # Increment the booked_appointments count of the session
+            session_booked_appointments =  appointment.session.booked_appointments
+            appointment.session.booked_appointments = session_booked_appointments + 1
+            appointment.session.save()
             # send email to patient
             # send_mail(
             #     'Appointment Booked',
@@ -803,7 +882,6 @@ class AcceptAppointmentView(generics.UpdateAPIView):
             #     [instance.patient.email],
             #     fail_silently=False,
             # )
-
         else:
             raise ValidationError('Appointment is not in PENDING status.')
 
@@ -818,9 +896,8 @@ class AcceptAppointmentView(generics.UpdateAPIView):
 
 accept_appointment_view = AcceptAppointmentView.as_view()
 
-
-
 class RejectAppointmentView(generics.UpdateAPIView):
+    name = "Reject Appointment"
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
     lookup_field = 'id'
@@ -844,3 +921,94 @@ class RejectAppointmentView(generics.UpdateAPIView):
         return []
 
 reject_appointment_view = RejectAppointmentView.as_view()
+
+class AttendAppointmentView(generics.UpdateAPIView):
+    name = "Attend Appointment"
+    queryset = Appointment.objects.all()
+    serializer_class = AppointmentSerializer
+    lookup_field = 'id'
+
+    def update(self, request, *args, **kwargs):
+        self.check_permissions(request)
+
+        appointment = self.get_object()
+
+        session_start_time = appointment.session.start_time
+        current_time = timezone.now()
+        if current_time < session_start_time:
+            raise ValidationError('Session has not started yet.')
+
+        if appointment.status == AppointmentStatus.ACCEPTED or appointment.status == AppointmentStatus.CONFIRMED:
+            appointment.status = AppointmentStatus.ATTENDED
+            # Increment the attended_appointments count of the session
+            session_attended_appointments =  appointment.session.attended_appointments
+            appointment.session.attended_appointments = session_attended_appointments + 1
+            appointment.session.save()
+        else:
+            raise ValidationError('Invalid Appointment to Attend')
+
+        appointment.save()
+        serializer = self.get_serializer(appointment)
+        return Response(serializer.data)
+
+    def get_permissions(self):
+        if self.request.method == 'PUT':
+            return [IsAppointmentSessionAdmin()]
+        return []
+
+attend_appointment_view = AttendAppointmentView.as_view()
+
+class UnattendAppointmentView(generics.UpdateAPIView):
+    name = "Unattend Appointment"
+    queryset = Appointment.objects.all()
+    serializer_class = AppointmentSerializer
+    lookup_field = 'id'
+
+    def update(self, request, *args, **kwargs):
+        self.check_permissions(request)
+
+        appointment = self.get_object()
+
+        session_start_time = appointment.session.start_time
+        current_time = timezone.now()
+        if current_time < session_start_time:
+            raise ValidationError('Session has not started yet.')
+
+        if appointment.status == AppointmentStatus.ACCEPTED or appointment.status == AppointmentStatus.CONFIRMED:
+            appointment.status = AppointmentStatus.UNATTENDED
+        else:
+            raise ValidationError('Invalid Appointment to Unattend')
+
+        appointment.save()
+        serializer = self.get_serializer(appointment)
+        return Response(serializer.data)
+
+    def get_permissions(self):
+        if self.request.method == 'PUT':
+            return [IsAppointmentSessionAdmin()]
+        return []
+
+unattend_appointment_view = UnattendAppointmentView.as_view()
+
+# ----------------------------------------------
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def put(self, request):
+        user = request.user
+        data = request.data
+
+        old_password = data.get('old_password')
+        new_password = data.get('new_password')
+
+        if not user.check_password(old_password):
+            return Response({'error': 'Invalid old password'}, status=400)
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({'success': 'Password changed successfully'}, status=200)
+
+change_password_view = ChangePasswordView.as_view()

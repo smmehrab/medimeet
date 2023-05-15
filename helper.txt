@@ -1,0 +1,10 @@
+# SSL
+sudo apt install snapd
+sudo snap install --classic certbot
+
+# Port Kill
+sudo fuser -k 8080/tcp
+
+# Database Reset
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;

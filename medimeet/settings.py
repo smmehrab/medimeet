@@ -31,6 +31,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # DEBUG = 'RENDER' not in os.environ
 DEBUG = True
 PRODUCTION = False
+APPEND_SLASH = False
 
 ALLOWED_HOSTS = ["*"]
 
@@ -195,14 +196,14 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticatedOrReadOnly"
     ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
-    "PAGE_SIZE": 10
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20
 }
 
 SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ["Bearer"],
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30), # minutes=5
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1), # days=1
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=30), # minutes=5
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30), # days=1
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": False,

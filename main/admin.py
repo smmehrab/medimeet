@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import User, Doctor, Session, Appointment, PhoneVerification
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.admin import DateFieldListFilter
 
 @admin.register(User)
 class UserAdminConfig(UserAdmin):
@@ -27,21 +28,21 @@ class UserAdminConfig(UserAdmin):
 
 @admin.register(Doctor)
 class DoctorAdminConfig(admin.ModelAdmin):
-    list_display = ('id', 'fullname', 'department', 'description', 'email', 'image_url', 'phone', 'admin')
+    list_display = ('id', 'fullname', 'title', 'department', 'description', 'email', 'image_url', 'phone', 'admin')
     list_filter = ('admin',)
-    search_fields = ('fullname', 'email', 'department', 'phone')
+    search_fields = ('fullname', 'title', 'email', 'department', 'phone')
 
 @admin.register(Session)
 class SessionAdminConfig(admin.ModelAdmin):
-    list_display = ('id', 'admin', 'doctor', 'start_time', 'end_time', 'max_appointments')
-    list_filter = ('admin', 'doctor')
+    list_display = ('id', 'admin', 'doctor', 'start_time', 'end_time', 'max_appointments', 'booked_appointments', 'confirmed_appointments', 'attended_appointments', 'modified_at')
+    list_filter = ('admin', 'doctor', ('start_time', DateFieldListFilter), ('end_time', DateFieldListFilter))
     search_fields = ('admin__email', 'doctor__fullname')
 
 @admin.register(Appointment)
 class AppointmentAdminConfig(admin.ModelAdmin):
-    list_display = ('id', 'session', 'patient', 'appointment_type', 'status', 'serial', 'modified_at')
+    list_display = ('id', 'doctor', 'session', 'patient', 'appointment_type', 'appointment_note', 'status', 'serial', 'modified_at')
     list_filter = ('session__doctor', 'status')
-    search_fields = ('patient__email', 'appointment_type', 'appointment_note')
+    search_fields = ('doctor__fullname', 'patient__email', 'appointment_type', 'appointment_note')
 
 @admin.register(PhoneVerification)
 class PhoneVerificationAdminConfig(admin.ModelAdmin):
