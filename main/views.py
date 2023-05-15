@@ -67,10 +67,14 @@ from .permissions import (
     IsUserSelf,
     IsDoctorSessionAdmin,
     IsDoctorAdmin,
+    DoctorSummaryPermission,
     IsAppointmentPatientOrSessionAdmin,
     IsAppointmentSessionAdmin,
-    IsAppointmentPatient
+    IsAppointmentPatient,
+    IsPatient
 )
+
+# Token Views ------------------------------------------------------------
 
 class TokenGenerateView(APIView):
     name = "Generate JWT Token Pair"
@@ -126,7 +130,7 @@ class TokenRefreshView(TokenRefreshView):
 
 token_refresh_view = TokenRefreshView.as_view()
 
-# ----------------------------------------------
+# OTP Views ------------------------------------------------------------
 
 class OTPSendView(generics.CreateAPIView):
     name = "Send OTP"
@@ -219,7 +223,30 @@ class OTPVerifyView(APIView):
 
 otp_verify_view = OTPVerifyView.as_view()
 
-# ----------------------------------------------
+# Password Views ------------------------------------------------------------
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def put(self, request):
+        user = request.user
+        data = request.data
+
+        old_password = data.get('old_password')
+        new_password = data.get('new_password')
+
+        if not user.check_password(old_password):
+            return Response({'error': 'Invalid old password'}, status=400)
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({'success': 'Password changed successfully'}, status=200)
+
+change_password_view = ChangePasswordView.as_view()
+
+# Admin Views ------------------------------------------------------------
 
 class AdminListCreateAPIView(generics.ListCreateAPIView):
     name = "Admin List and Create"
@@ -301,8 +328,7 @@ class AdminDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 admin_detail_view = AdminDetailView.as_view()
 
-
-# ----------------------------------------------
+# Patient Views ------------------------------------------------------------
 
 class PatientCreateView(generics.CreateAPIView):
     name = "Patient Create"
@@ -329,7 +355,6 @@ class PatientProfileDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserProfileSerializer
     lookup_field = 'id'
-    name='Patient Profile'
 
     def get(self, request, *args, **kwargs):
         patient = self.get_object()
@@ -368,7 +393,48 @@ class PatientAppointmentListAPIView(generics.ListAPIView):
 
 patient_appointment_list_view = PatientAppointmentListAPIView.as_view()
 
-# ----------------------------------------------
+class PatientSummaryView(APIView):
+    name = "Patient Summary"
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+            patient = User.objects.get(id=request.user.id)
+        except User.DoesNotExist:
+            raise ValidationError('Invalid Patient ID')
+
+        doctors = Doctor.objects.all()
+
+        visited_doctors = 0
+        summary = []
+        for doctor in doctors:
+            attended = Appointment.objects.filter(doctor=doctor, patient=patient, status=AppointmentStatus.ATTENDED).count()
+            if attended > 0:
+                visited_doctors += 1
+                doctor_data = {
+                    'doctor_name': doctor.fullname,
+                    'appointments': {
+                        'attended': attended,
+                        'booked': Appointment.objects.filter(doctor=doctor, patient=patient, status=AppointmentStatus.ACCEPTED).count(),
+                        'confirmed': Appointment.objects.filter(doctor=doctor, patient=patient, status=AppointmentStatus.CONFIRMED).count(),
+                    }
+                }
+                summary.append(doctor_data)
+        summary = sorted(summary, key=lambda x: x['appointments']['attended'], reverse=True)
+        data = {
+            'visited_doctors': visited_doctors,
+            'summary': summary
+        }
+        return Response(data)
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsAuthenticated(), IsPatient()]
+        return []
+
+patient_summary_view = PatientSummaryView.as_view()
+
+# Doctor Views ------------------------------------------------------------
 
 class DoctorListCreateAPIView(generics.ListCreateAPIView):
     name = "Doctor List and Create"
@@ -448,6 +514,63 @@ class DoctorRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
 
 doctor_detail_view = DoctorRetrieveUpdateDestroyAPIView.as_view()
 
+class DoctorSummaryView(APIView):
+    name = "Doctor Summary"
+    permission_classes = [DoctorSummaryPermission]
+    lookup_field = 'id'
+
+    def get_object(self):
+        doctor_id = self.kwargs['id']
+        return get_object_or_404(Doctor, id=doctor_id)
+
+    def get(self, request, *args, **kwargs):
+
+        try:
+            doctor = self.get_object()
+        except Doctor.DoesNotExist:
+            raise ValidationError('Invalid Doctor ID')
+
+        start_time = request.query_params.get('start_time')
+        end_time = request.query_params.get('end_time')
+
+        if not start_time:
+            # Set default start_time to 30 days before now
+            default_start_time = timezone.now() - timezone.timedelta(days=30)
+            start_time = default_start_time.isoformat()
+        if not end_time:
+            # Set default end_time to now
+            end_time = timezone.now().isoformat()
+
+        appointments = Appointment.objects.filter(
+            doctor=doctor,
+            session__start_time__gte=start_time,
+            session__end_time__lte=end_time
+        )
+        distinct_patients = appointments.values('patient').distinct()
+
+        session_count = Session.objects.filter(
+            doctor=doctor,
+            start_time__gte=start_time,
+            end_time__lte=end_time
+        ).count()
+
+        summary = {
+            'doctor': doctor.fullname,
+            'session_count': session_count,
+            'patients_count': distinct_patients.count(),
+            'patients': distinct_patients.values_list('patient__username', flat=True),
+            'appointments': {
+                'attended': appointments.filter(status=AppointmentStatus.ATTENDED).count(),
+                'confirmed': appointments.filter(status=AppointmentStatus.CONFIRMED).count(),
+                'booked': appointments.filter(status=AppointmentStatus.ACCEPTED).count(),
+            }
+        }
+        return Response(summary)
+
+doctor_summary_view = DoctorSummaryView.as_view()
+
+# Doctor Admin Views ------------------------------------------------------------
+
 class DoctorAdminUpdateAPIView(generics.UpdateAPIView):
     name = "Doctor Admin Update"
     serializer_class = DoctorSerializer
@@ -480,6 +603,8 @@ class DoctorAdminUpdateAPIView(generics.UpdateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 doctor_admin_update_view = DoctorAdminUpdateAPIView.as_view()
+
+# Doctor Image Views ------------------------------------------------------------
 
 class DoctorImageAPIView(APIView):
     name = 'Doctor Image'
@@ -598,7 +723,7 @@ class DoctorImageAPIView(APIView):
 
 doctor_image_view = DoctorImageAPIView.as_view()
 
-# ----------------------------------------------
+# Session Views ------------------------------------------------------------
 
 class SessionListCreateAPIView(generics.ListCreateAPIView):
     name = "Session List and Create"
@@ -701,8 +826,7 @@ class SessionDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 sessions_detail_view = SessionDetailView.as_view()
 
-
-# ----------------------------------------------
+# Appointment Views ------------------------------------------------------------
 
 class AppointmentListCreateView(generics.ListCreateAPIView):
     name = "Appointment List and Create"
@@ -799,7 +923,7 @@ class AppointmentView(generics.RetrieveUpdateDestroyAPIView):
 
 appointment_view = AppointmentView.as_view()
 
-# ----------------------------------------------
+# Appointment Status Views ------------------------------------------------------------
 
 class ConfirmAppointmentView(generics.UpdateAPIView):
     name = "Confirm Appointment"
@@ -990,25 +1114,4 @@ class UnattendAppointmentView(generics.UpdateAPIView):
 
 unattend_appointment_view = UnattendAppointmentView.as_view()
 
-# ----------------------------------------------
-
-class ChangePasswordView(APIView):
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication]
-
-    def put(self, request):
-        user = request.user
-        data = request.data
-
-        old_password = data.get('old_password')
-        new_password = data.get('new_password')
-
-        if not user.check_password(old_password):
-            return Response({'error': 'Invalid old password'}, status=400)
-
-        user.set_password(new_password)
-        user.save()
-
-        return Response({'success': 'Password changed successfully'}, status=200)
-
-change_password_view = ChangePasswordView.as_view()
+# END ------------------------------------------------------------

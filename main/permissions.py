@@ -55,6 +55,14 @@ class IsDoctorAdmin(BasePermission):
         doctor = Doctor.objects.filter(id=doctor_id, admin=request.user).first()
         return doctor is not None
 
+class DoctorSummaryPermission(BasePermission):
+    def has_permission(self, request, view):
+        if request.method == 'GET':
+            doctor_id = view.kwargs.get('id')
+            doctor = Doctor.objects.filter(id=doctor_id, admin=request.user).first()
+            return doctor is not None or request.user.is_superuser
+        return False
+
 class IsDoctorSessionAdmin(BasePermission):
     def has_permission(self, request, view):
         # Check if user is admin of doctor in the session being accessed
@@ -103,58 +111,3 @@ class IsSuperUser(BasePermission):
 class IsSuperUserOrAdmin(BasePermission):
     def has_permission(self, request, view):
         return request.user.is_superuser or request.user.is_staff
-
-#-------------------------------------------------------------------
-
-class IsDoctorUserOrReadOnly(BasePermission):
-    """
-    Custom permission to only allow doctor users to edit an object,
-    and allow all users to view it.
-    """
-    def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:
-            return True
-        return request.user.is_authenticated and request.user.is_doctor
-
-
-class IsPatientUserOrReadOnly(BasePermission):
-    """
-    Custom permission to only allow patient users to edit an object,
-    and allow all users to view it.
-    """
-    def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:
-            return True
-        return request.user.is_authenticated and not request.user.is_doctor
-
-
-class IsAdminUser(BasePermission):
-    """
-    Custom permission to only allow admin users.
-    """
-    def has_permission(self, request, view):
-        return request.user.is_superuser
-
-
-class IsDoctorUser(BasePermission):
-    """
-    Custom permission to only allow doctor users.
-    """
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.is_doctor
-
-
-class IsPatientUser(BasePermission):
-    """
-    Custom permission to only allow patient users.
-    """
-    def has_permission(self, request, view):
-        return request.user.is_authenticated and not request.user.is_doctor
-
-
-class IsAppointmentOwnerOrAdminUser(BasePermission):
-    """
-    Custom permission to only allow appointment owner or admin users to edit/delete an object.
-    """
-    def has_object_permission(self, request, view, obj):
-        return obj.patient == request.user or request.user.is_superuser
