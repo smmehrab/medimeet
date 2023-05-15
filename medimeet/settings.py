@@ -33,6 +33,9 @@ DEBUG = False
 PRODUCTION = True
 APPEND_SLASH = True
 
+if not DEBUG:
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 ALLOWED_HOSTS = ["*"]
 
 # RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
