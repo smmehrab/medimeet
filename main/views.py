@@ -177,12 +177,12 @@ class OTPSendView(generics.CreateAPIView):
             verification.save()
 
         # Send the OTP to the user's phone number via a third-party SMS API
-        # payload = {
-        #     'api_key': settings.SMS_API_KEY,
-        #     'msg': 'Your MediMeet OTP: ' + otp,
-        #     'to': phone_number
-        # }
-        # response = requests.request("POST", settings.SMS_URL, data=payload)
+        payload = {
+            'api_key': settings.SMS_API_KEY,
+            'msg': 'Your MediMeet OTP: ' + otp,
+            'to': phone
+        }
+        response = requests.request("POST", settings.SMS_URL, data=payload)
         return Response({'success': True, 'token': token})
 
 otp_send_view = OTPSendView.as_view()
