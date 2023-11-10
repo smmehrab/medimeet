@@ -35,9 +35,9 @@ Hospital authorities, acting as super-admins, can efficiently manage the roster 
 
 <img src="images/database.png" alt="Database Design">
 
-## API Design
+## APIs
 
-[View Details](https://app.swaggerhub.com/apis/smmehrab/MediMeet/1.0.0)
+[View All APIs](https://app.swaggerhub.com/apis/smmehrab/MediMeet/1.0.0)
 
 <img src="images/api.png" alt="API Design">
 
