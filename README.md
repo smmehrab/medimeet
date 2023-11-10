@@ -15,6 +15,7 @@ Hospital authorities, acting as super-admins, can efficiently manage the roster 
 * Backend: [Python (Django)](https://www.djangoproject.com/)
 * Database: [PostgreSQL](https://www.postgresql.org/)
 * SMS: [sms.net.bd](https://www.sms.net.bd/api)
+* Payment Gateway: [Bkash](https://developer.bka.sh/docs)
 * Deployment: [Render](https://render.com/)
 * API Documentation: [Swagger](https://swagger.io/)
 * API Testing: [Postman](https://www.postman.com/)
